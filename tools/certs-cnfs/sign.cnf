@@ -1,0 +1,30 @@
+[ ca ]
+default_ca = my_ca
+
+[ my_ca ]
+dir = .
+new_certs_dir = $dir
+unique_subject = no
+certificate = $dir/root-cert.pem
+database = $dir/certindex
+private_key = $dir/root-key.pem
+serial = $dir/certserial
+default_days = 36500
+default_md = sha256
+policy = myca_policy
+x509_extensions = v3_ca
+
+[myca_policy]
+commonName = supplied
+stateOrProvinceName = supplied
+countryName = optional
+emailAddress = optional
+organizationName = supplied
+organizationalUnitName = optional
+
+[v3_ca]
+basicConstraints = critical,CA:true,pathlen:0
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+keyUsage = digitalSignature,keyEncipherment,cRLSign,keyCertSign
+extendedKeyUsage = serverAuth,clientAuth 
