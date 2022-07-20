@@ -1,0 +1,11 @@
+polaris_security:
+  containers:
+      image: polarismesh/polaris-security
+      tag: latest
+      imagePullPolicy: Never
+  bind: 0.0.0.0
+  port: 8888
+  default_cert_ttl: 3600
+  dns_names: polaris-security,polaris-security.polaris-system.svc,polaris-security.polaris-system.svc.cluster.local
+installation:
+  namespace: polaris-system
