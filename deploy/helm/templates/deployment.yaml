@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polaris-security-deployment
+  namespace: polaris-system
+  labels:
+    app: polaris-security
+spec:
+  selector:
+    matchLabels:
+      app: polaris-security
+  replicas: 3
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: polaris-security
+    spec:
+      serviceAccountName: polaris-security
+      containers:
+      - image: {{.Values.polaris_security.containers.image}}:{{.Values.polaris_security.containers.tag}} 
+        name: polaris-security
+        imagePullPolicy: {{.Values.polaris_security.containers.imagePullPolicy}}
+        command: ["/data/polaris_security"]
+        volumeMounts:
+        - name: polaris-security-secret-volumn
+          mountPath: "/polaris-security-secret"
+          readOnly: true
+        args:
+          - --ca_private_key_path=/polaris-security-secret/ca-key.pem
+          - --ca_cert_path=/polaris-security-secret/ca-cert.pem
+          - --root_cert_path=/polaris-security-secret/root-cert.pem
+          - --cert_chain_path=/polaris-security-secret/cert-chain.pem
+          - --dns_names={{ .Values.polaris_security.dns_names }}
+        ports:
+        - containerPort: {{ .Values.polaris_security.port }}
+          protocol: TCP
+      volumes:
+      - name: polaris-security-secret-volumn
+        secret:
+          secretName: polaris-security-secret
+          optional: false
+          items:
+          - key: ca-cert
+            path: ca-cert.pem
+          - key: ca-key
+            path: ca-key.pem
+          - key: cert-chain
+            path: cert-chain.pem
+          - key: root-cert
+            path: root-cert.pem
