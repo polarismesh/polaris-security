@@ -25,10 +25,10 @@ Then, just run `load-certs-into-k8s.sh`.
 If the secrets were created successfully, they should appear in namespace `polaris-system`.
 
 ```
-(base) root@icx34:~# kubectl get secrets -n polaris-system
+$ kubectl get secrets -n polaris-system
 NAME                                     TYPE                 DATA   AGE
-polaris-security-secret                  Opaque               4      22h
-polaris-sidecar-secret                   Opaque               1      22h
+polaris-security-secret                  Opaque               4      1m
+polaris-sidecar-secret                   Opaque               1      1m
 ```
 
 #### Use Helm

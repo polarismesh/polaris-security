@@ -37,6 +37,7 @@ spec:
           - --root_cert_path=/polaris-security-secret/root-cert.pem
           - --cert_chain_path=/polaris-security-secret/cert-chain.pem
           - --dns_names={{ .Values.polaris_security.dns_names }}
+          - --signer={{ .Values.polaris_security.signer }}
         ports:
         - containerPort: {{ .Values.polaris_security.port }}
           protocol: TCP

@@ -35,12 +35,15 @@ func init() {
 	rootCmd.PersistentFlags().IntVarP(
 		&serverArgs.Port, "port", "", 8888, "port to bind")
 	// default cert ttl = 24 hours
-	rootCmd.PersistentFlags().Int64VarP(
+	rootCmd.PersistentFlags().Int32VarP(
 		&serverArgs.DefaultCertTTL, "default_cert_ttl", "", 3600, "default cert ttl (in seconds)")
 	// DNSNames used as SAN in ca self-signed service certificate
 	rootCmd.PersistentFlags().StringVarP(
 		&serverArgs.DNSNames, "dns_names", "", "polaris-security", `dns names used as SAN in ca self-signed service certificate,
 		a ',' delimited string, example: polaris-security,polaris-svc`)
+	rootCmd.PersistentFlags().StringVarP(
+		&serverArgs.Signer, "signer", "", "", `signer to handle csr request, "" for default polaris-security signer or 
+		tcsissuer.tcs.intel.com/{tcs_issuer_namespace}.tcs_issuer_name for TCS issuer`)
 }
 
 func Execute() {
