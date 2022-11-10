@@ -93,6 +93,14 @@ func (signer *KubernetesCSRSigner) SignCertificate(kubeClientSet *kubernetes.Cli
 		return nil, fmt.Errorf("create kubernetes CSR failed :%w", err)
 	}
 
+	req.Status.Conditions = append(csr.Status.Conditions, k8s_cert.CertificateSigningRequestCondition{
+		Type:           k8s_cert.CertificateApproved,
+		Status:         "True",
+		Reason:         "",
+		Message:        "This CSR was approved by polaris-security",
+		LastUpdateTime: k8s_meta.Now(),
+	})
+
 	// approve the CSR manually
 	_, err = kubeClientSet.CertificatesV1().CertificateSigningRequests().UpdateApproval(context.TODO(), req.Name, req, k8s_meta.UpdateOptions{})
 	if err != nil {

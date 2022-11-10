@@ -7,7 +7,15 @@ polaris_security:
   port: 8888
   default_cert_ttl: 3600
   dns_names: polaris-security,polaris-security.polaris-system.svc,polaris-security.polaris-system.svc.cluster.local
-  #signer: tcsissuer.tcs.intel.com/sandbox.my-ca
+  # external singer example:
+  # 1. [SGX singer] tcsissuer.tcs.intel.com/sandbox.my-ca
+  # 2. [cert-manager clusterissuer] clusterissuers.cert-manager.io/ca-issuer
+  # 3. [cert-manager namespaced issuer] issuers.cert-manager.io/polaris-system.ca-issuer
+
+  # "" for polaris-security built-in singer
   signer: ""
+  
+  # "" for a cluster issuer, which is not namespaced
+  signer_namespace: ""
 installation:
   namespace: polaris-system
