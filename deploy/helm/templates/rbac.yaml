@@ -1,25 +1,91 @@
-# TokenReview Create ClusterRole
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  namespace: {{ .Values.installation.namespace }}
-  name: token-review-creator
+  name: polaris-security-cluster-role
 rules:
+# TokenReview creation
 - apiGroups: ["authentication.k8s.io"]
   resources: ["tokenreviews"]
   verbs: ["create"]
+{{ if .Values.polaris_security.signer }}
+# Kubernetes CSR Usage ClusterRole when using another singer
+- apiGroups:
+    - certificates.k8s.io
+    - cert-manager.io
+  resources:
+    - certificatesigningrequests
+  verbs:
+    - delete
+    - deletecollection
+    - get
+    - put
+    - list
+    - create
+    - watch
+- apiGroups:
+    - certificates.k8s.io
+  resources:
+    - certificatesigningrequests/approval
+    - certificatesigningrequests/status
+  verbs:
+    - update
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - {{ .Values.polaris_security.signer }}
+  verbs:
+  - approve
+  - reference
+{{ end }}
 ---
-# bind the role to polaris-security
+# bind the cluster role to polaris-security
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: create-token-review
-  namespace: {{ .Values.installation.namespace }}
+  name: polaris-security-cluster-role-binding
 subjects:
 - kind: ServiceAccount
   name: polaris-security # "name" is case sensitive
   namespace: {{ .Values.installation.namespace }}
 roleRef:
   kind: ClusterRole
-  name: token-review-creator
+  name: polaris-security-cluster-role
   apiGroup: rbac.authorization.k8s.io
+{{ if .Values.polaris_security.signer }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: polaris-security-role
+  namespace: {{ .Values.polaris_security.signer_namespace }}
+rules:
+# Kubernetes CSR Usage ClusterRole when using another singer
+- apiGroups:
+  - cert-manager.io
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - "*"
+  verbs:
+  - approve
+  - reference
+---
+# bind role to polaris-security
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: polaris-security-role-binding
+  namespace: {{ .Values.installation.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: polaris-security # "name" is case sensitive
+  namespace: {{ .Values.installation.namespace }}
+roleRef:
+  kind: Role
+  name: polaris-security-role
+  apiGroup: rbac.authorization.k8s.io
+{{ end }}

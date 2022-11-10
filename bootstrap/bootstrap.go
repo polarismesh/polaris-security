@@ -19,6 +19,10 @@ func Start(args *server.CaBootstrapArgs) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = caServer.BuildSigner(args.Signer)
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = caServer.CreateServicePrivKeyAndCertChain(args)
 	if err != nil {
 		log.Fatal(err)

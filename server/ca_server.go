@@ -31,6 +31,10 @@ const (
 	ServiceCommonName        string        = "polaris-security"
 )
 
+const (
+	KubeCSRSigingTimeout = 5 * time.Minute
+)
+
 type CaBootstrapArgs struct {
 	CaPrivateKeyPath string
 	CaCertPath       string
@@ -38,13 +42,14 @@ type CaBootstrapArgs struct {
 	CertChainPath    string
 	Bind             string
 	Port             int
-	DefaultCertTTL   int64
+	DefaultCertTTL   int32
 	DNSNames         string
+	Signer           string
 }
 
 type SignCertificateRequest struct {
 	CSR string `json:"csr"`
-	TTL int64  `json:"ttl"`
+	TTL int32  `json:"ttl"`
 }
 
 type SignCertificateResponse struct {
@@ -60,13 +65,19 @@ type CaServer struct {
 	CertChainBytes []byte
 	RootCertBytes  []byte
 	KubeClientSet  *kubernetes.Clientset
-	DefaultCertTTL int64
+	DefaultCertTTL int32
+	Signer         Signer
 }
 
 type SignOptions struct {
 	CaCertificate  *x509.Certificate
 	CaPrivateKey   crypto.PrivateKey
-	DefaultCertTTL int64
+	DefaultCertTTL int32
+}
+
+func SignerExists(signer string) bool {
+	// TODO
+	return true
 }
 
 // BuildCaServer create a ca server according to `args`
@@ -119,49 +130,19 @@ func BuildCaServer(args *CaBootstrapArgs) (caServer *CaServer, err error) {
 	return caServer, nil
 }
 
-// SignCertificate is the core functionality of ca server
-// It takes a CSR `request` and signing option `opts` and produces a signed certificate pem bytes
-func SignCertificate(request *SignCertificateRequest, opts *SignOptions) (signedCertPemBytes []byte, err error) {
-	// decode csr from PEM encoded bytes
-	csr, err := util.ParseCsrFromPemBytes([]byte(request.CSR))
-	if err != nil {
-		return nil, err
+func (caServer *CaServer) BuildSigner(signerName string) error {
+	var signer Signer
+	if signerName == "" {
+		signer = &PolarisSecuritySigner{}
+	} else if SignerExists(signerName) {
+		signer = &KubernetesCSRSigner{
+			SignerName: signerName,
+		}
+	} else {
+		return fmt.Errorf("bad signer: %s", signerName)
 	}
-
-	ttl := request.TTL
-	// use the default cert ttl if the provided value is invalid
-	if ttl <= 0 {
-		ttl = opts.DefaultCertTTL
-	}
-
-	serialNum, err := util.GenerateSerialNum()
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      csr.Subject,
-		// try to compensate for clock skew/network delay
-		NotBefore:      time.Now().Add(-10 * time.Second),
-		NotAfter:       time.Now().Add(time.Duration(ttl) * time.Second),
-		KeyUsage:       x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		IsCA:           false,
-		DNSNames:       csr.DNSNames,
-		IPAddresses:    csr.IPAddresses,
-		URIs:           csr.URIs,
-		EmailAddresses: csr.EmailAddresses,
-	}
-
-	certBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, opts.CaCertificate, csr.PublicKey, opts.CaPrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// encode certificate to PEM format
-	signedCertPemBytes, err = util.EncodeDataToPemFormat(certBytes, util.CertificateType)
-	return
+	caServer.Signer = signer
+	return nil
 }
 
 // CreateServicePrivKeyAndCertChain create self-signed service privkey & cert as a proof of ca server's identity
@@ -280,7 +261,7 @@ func (caServer *CaServer) HandleSignCertificateRequest(c *gin.Context) {
 		})
 		return
 	}
-	certChain, err := SignCertificate(&request, &SignOptions{
+	certChain, err := caServer.Signer.SignCertificate(caServer.KubeClientSet, &request, &SignOptions{
 		DefaultCertTTL: caServer.DefaultCertTTL,
 		CaCertificate:  caServer.CaCertificate,
 		CaPrivateKey:   caServer.CaPrivateKey,
