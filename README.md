@@ -1,3 +1,4 @@
+English | [简体中文](./README-zh.md)
 # polaris-security
 polaris-security is polaris submodule to provide authority and authentication ability to applications
 
@@ -34,7 +35,7 @@ polaris-security can use Kubernetes CertificateSignRequest to refer to an extern
 #### Use cert-manager
 About cert-manager signer, refer to [the intro](https://cert-manager.io/docs/configuration/).  
 
-After deployment, to use it as an external signer for polaris-security, you should change `sign` and `sign_namespace` in `deploy/helm/values.yaml`
+After deployment, to use it as an external signer for polaris-security, you should change `signer` and `sign_namespace` in `deploy/helm/values.yaml`
 the naming convention is explained in [the doc](https://cert-manager.io/docs/usage/kube-csr/).  
 
 as an example：
